@@ -80,18 +80,13 @@
             ["Proverbs", "17:17", "A friend loves at all times, and a brother is born for a time of adversity.", "easy"],
             ["Psalm", "34:8", "Taste and see that the LORD is good; blessed is the one who takes refuge in him.", "easy"],
             ["John", "11:35", "Jesus wept.", "easy"],
-            ["Psalm", "119:11", "I have hidden your word in my heart that I might not sin against you.", "easy"],
             ["1 John", "4:7", "Dear friends, let us love one another, for love comes from God.", "easy"],
-            ["Psalm", "100:4", "Enter his gates with thanksgiving and his courts with praise.", "easy"],
-            ["Proverbs", "15:1", "A gentle answer turns away wrath, but a harsh word stirs up anger.", "easy"],
             ["Psalm", "46:10", "He says, Be still, and know that I am God.", "easy"],
             ["Matthew", "6:10", "Your kingdom come, your will be done, on earth as it is in heaven.", "easy"],
             ["Psalm", "118:1", "Give thanks to the LORD, for he is good; his love endures forever.", "easy"],
             ["Proverbs", "10:12", "Hatred stirs up conflict, but love covers over all wrongs.", "easy"],
-            ["Psalm", "91:1", "Whoever dwells in the shelter of the Most High will rest in the shadow of the Almighty.", "easy"],
-            ["Isaiah", "12:2", "Surely God is my salvation; I will trust and not be afraid.", "easy"],
             ["Psalm", "56:3", "When I am afraid, I put my trust in you.", "easy"],
-            ["Psalm", "119:103", "How sweet are your words to my taste, sweeter than honey to my mouth!", "easy"],
+            ["Psalm", "119:105", "Your word is a lamp for my feet, a light on my path.", "easy"],
 
             // MEDIUM
             ["Jeremiah", "29:11", "For I know the plans I have for you, declares the LORD, plans to prosper you and not to harm you, plans to give you hope and a future.", "medium"],
@@ -357,9 +352,9 @@
             localStorage.setItem('bibleblanks_leaderboard', JSON.stringify(top10));
         }
 
-        /*function clearLeaderboard() {
+        function clearLeaderboard() {
             localStorage.removeItem('bibleblanks_leaderboard');
-        }*/
+        }
 
         // -- NEW: Name storage helpers --
         function getSavedPlayerName() {
@@ -626,7 +621,7 @@
                                     <ChevronRight size={16} className="rotate-180" /> Back
                                 </button>
                                 {list.length > 0 && (
-                                    <!--<button
+                                    <button
                                         className="bg-red-100 text-red-600 px-4 py-2 rounded hover:bg-red-200 text-sm"
                                         onClick={() => {
                                             if (window.confirm('Clear leaderboard?')) {
@@ -636,7 +631,7 @@
                                         }}
                                     >
                                         Clear Leaderboard
-                                    </button>-->
+                                    </button>
                                 )}
                             </div>
                         </div>
@@ -851,5 +846,3 @@
     </script>
 </body>
 </html>
-
-
