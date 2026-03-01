@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bible Verse Master</title>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel for in-browser JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // ============================================================================
+        // INLINE ICONS (Replacing lucide-react for browser compatibility)
+        // ============================================================================
+        const BookOpen = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+        );
+        const Trophy = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+        );
+        const Lightbulb = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"></path><path d="M9 18h6"></path><path d="M10 22h4"></path></svg>
+        );
+        const CheckCircle2 = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>
+        );
+        const ChevronRight = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+        );
+        const RefreshCw = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+        );
+        const Eye = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        );
+
+        // ============================================================================
+        // VERSE DATABASE
+        // ============================================================================
+        const verseDB = [/* ... unchanged ... */];
+
+        // Map difficulty to percentage of words hidden
+        const DIFFICULTY_SETTINGS = {
+            easy: { label: 'Easy', hidePercent: 0.2, points: 10, color: 'bg-green-500', hover: 'hover:bg-green-600' },
+            medium: { label: 'Medium', hidePercent: 0.4, points: 20, color: 'bg-blue-500', hover: 'hover:bg-blue-600' },
+            hard: { label: 'Hard', hidePercent: 0.7, points: 30, color: 'bg-orange-500', hover: 'hover:bg-orange-600' },
+            very_hard: { label: 'Very Hard', hidePercent: 0.9, points: 40, color: 'bg-red-500', hover: 'hover:bg-red-600' }
+        };
+
+        // ----------------------------------------------------------------------------
+        // Leaderboard helper functions (localStorage)
+        // ----------------------------------------------------------------------------
+        function getLeaderboard() {
+            const data = localStorage.getItem('bibleblanks_leaderboard');
+            if (!data) return [];
+            try {
+                return JSON.parse(data);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function addScoreToLeaderboard(name, score, difficulty, date) {
+            const leaderboard = getLeaderboard();
+            leaderboard.push({ name, score, difficulty, date });
+            // Sort by score descending, keep top 10
+            leaderboard.sort((a, b) => b.score - a.score);
+            const top10 = leaderboard.slice(0, 10);
+            localStorage.setItem('bibleblanks_leaderboard', JSON.stringify(top10));
+        }
+
+        function clearLeaderboard() {
+            localStorage.removeItem('bibleblanks_leaderboard');
+        }
+
+        function App() {
+            const [screen, setScreen] = useState('home'); // 'home', 'playing', 'leaderboard'
+            const [difficulty, setDifficulty] = useState(null);
+            const [score, setScore] = useState(0);
+
+            // Game State
+            const [currentVerseInfo, setCurrentVerseInfo] = useState(null);
+            const [tokens, setTokens] = useState([]);
+            const [inputs, setInputs] = useState({});
+            const [gameState, setGameState] = useState('playing'); // 'playing', 'won'
+            const [message, setMessage] = useState('');
+            // Leaderboard State
+            const [leaderboard, setLeaderboard] = useState(() => getLeaderboard());
+            const [showNamePrompt, setShowNamePrompt] = useState(false);
+            const [inputName, setInputName] = useState('');
+
+            // --------------------------------------------------------------------------
+            // GAME LOGIC
+            // --------------------------------------------------------------------------
+
+            const startGame = (selectedDifficulty) => {
+                setDifficulty(selectedDifficulty);
+                setScreen('playing');
+                setScore(0);
+                loadRandomVerse(selectedDifficulty);
+                setMessage('');
+            };
+
+            const loadRandomVerse = (diff) => {
+                const availableVerses = verseDB.filter(v => v[3] === diff);
+                const randomVerse = availableVerses[Math.floor(Math.random() * availableVerses.length)];
+                const [book, reference, text, level] = randomVerse;
+                setCurrentVerseInfo({ book, reference, text, level });
+
+                const rawWords = text.split(/\s+/);
+                const parsedTokens = rawWords.map((word, index) => {
+                    const match = word.match(/^([^A-Za-z0-9]*)([A-Za-z0-9'-]+)([^A-Za-z0-9]*)$/);
+                    if (match) {
+                        return {
+                            id: index,
+                            original: word,
+                            prePunc: match[1] || '',
+                            cleanWord: match[2],
+                            postPunc: match[3] || '',
+                            isBlank: false,
+                            revealed: false,
+                            isCorrect: false
+                        };
+                    }
+                    return {
+                        id: index,
+                        original: word,
+                        prePunc: '',
+                        cleanWord: word,
+                        postPunc: '',
+                        isBlank: false,
+                        revealed: false,
+                        isCorrect: false
+                    };
+                });
+
+                const hideRatio = DIFFICULTY_SETTINGS[diff].hidePercent;
+                const wordsToHideCount = Math.max(1, Math.floor(parsedTokens.length * hideRatio));
+                let indices = parsedTokens.map((_, i) => i);
+                indices = indices.sort(() => Math.random() - 0.5);
+                const hiddenIndices = new Set(indices.slice(0, wordsToHideCount));
+
+                const finalTokens = parsedTokens.map((t, i) => {
+                    if (diff === 'easy' && t.cleanWord.length <= 2 && Math.random() > 0.3) {
+                        return t;
+                    }
+                    if (hiddenIndices.has(i)) {
+                        return { ...t, isBlank: true };
+                    }
+                    return t;
+                });
+
+                setTokens(finalTokens);
+                setInputs({});
+                setGameState('playing');
+                setMessage('');
+            };
+
+            const handleInputChange = (id, value) => {
+                if (gameState !== 'playing') return;
+                setInputs(prev => ({
+                    ...prev,
+                    [id]: value
+                }));
+
+                const token = tokens.find(t => t.id === id);
+                if (token && value.toLowerCase().trim() === token.cleanWord.toLowerCase()) {
+                    markWordCorrect(id);
+                }
+            };
+
+            const markWordCorrect = (id) => {
+                setTokens(prev => {
+                    const newTokens = prev.map(t => 
+                        t.id === id ? { ...t, isCorrect: true, revealed: true } : t
+                    );
+                    checkWinCondition(newTokens);
+                    return newTokens;
+                });
+                setScore(s => s + DIFFICULTY_SETTINGS[difficulty].points);
+            };
+
+            // After a win, check if leaderboard should be shown / name input needed
+            useEffect(() => {
+                if (gameState === 'won') {
+                    // If high enough for leaderboard, prompt for name
+                    let newLeaderboard = getLeaderboard();
+                    if (score > 0) {
+                        if (newLeaderboard.length < 10 || score > Math.min(...newLeaderboard.map(e => e.score))) {
+                            setTimeout(() => setShowNamePrompt(true), 500); // Brief delay for smoothness
+                        }
+                    }
+                } else {
+                    setShowNamePrompt(false);
+                }
+            // eslint-disable-next-line
+            }, [gameState]);
+
+            const checkWinCondition = (currentTokens) => {
+                const allDone = currentTokens.every(t => !t.isBlank || t.revealed || t.isCorrect);
+                if (allDone) {
+                    setGameState('won');
+                    setMessage('Great job! You completed the verse.');
+                }
+            };
+
+            const revealOneWord = () => {
+                if (gameState !== 'playing') return;
+                const unrevealedIndex = tokens.findIndex(t => t.isBlank && !t.isCorrect && !t.revealed);
+                if (unrevealedIndex !== -1) {
+                    setTokens(prev => {
+                        const newTokens = [...prev];
+                        newTokens[unrevealedIndex].revealed = true;
+                        checkWinCondition(newTokens);
+                        return newTokens;
+                    });
+                }
+            };
+
+            const revealAll = () => {
+                if (gameState !== 'playing') return;
+                setTokens(prev => {
+                    const newTokens = prev.map(t => ({ ...t, revealed: t.isBlank ? true : t.revealed }));
+                    setGameState('won');
+                    setMessage('Verse revealed.');
+                    return newTokens;
+                });
+            };
+
+            const nextVerse = () => {
+                loadRandomVerse(difficulty);
+            };
+
+            // Leaderboard
+            const saveScore = () => {
+                const name = inputName.trim() ? inputName.trim().slice(0, 20) : "Anonymous";
+                const now = new Date().toISOString().slice(0, 16).replace("T", " ");
+                addScoreToLeaderboard(name, score, difficulty, now);
+                setInputName('');
+                setShowNamePrompt(false);
+                setLeaderboard(getLeaderboard());
+            };
+
+            // --------------------------------------------------------------------------
+            // RENDER COMPONENTS
+            // --------------------------------------------------------------------------
+
+            // Leaderboard component
+            function Leaderboard({ onBack }) {
+                const list = leaderboard;
+                return (
+                    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
+                        <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-slate-100">
+                            <div className="flex justify-center mb-6">
+                                <div className="bg-yellow-100 p-4 rounded-full">
+                                    <Trophy size={48} className="text-yellow-500" />
+                                </div>
+                            </div>
+                            <h2 className="text-3xl font-extrabold mb-2 text-yellow-700">Leaderboard</h2>
+                            <p className="mb-6 text-slate-500">Top 10 scores</p>
+                            <table className="w-full mb-4 text-left table-fixed">
+                                <thead>
+                                    <tr className="text-slate-400 border-b">
+                                        <th className="py-2 px-2 w-8"></th>
+                                        <th className="py-2 px-2">Name</th>
+                                        <th className="py-2 px-2">Score</th>
+                                        <th className="py-2 px-2">Difficulty</th>
+                                        <th className="py-2 px-2">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {list.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="text-center py-6 text-slate-400">
+                                                No scores yet.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        list.map((entry, idx) => (
+                                            <tr key={idx}
+                                                className={`border-b last:border-b-0 ${idx === 0 ? "bg-yellow-50" : ""}`}>
+                                                <td className="py-2 px-2 font-bold">{idx + 1}</td>
+                                                <td className="py-2 px-2">{entry.name}</td>
+                                                <td className="py-2 px-2 font-mono">{entry.score}</td>
+                                                <td className="py-2 px-2 capitalize">
+                                                    <span className={`text-xs font-semibold px-2 py-1 rounded ${DIFFICULTY_SETTINGS[entry.difficulty]?.color || "bg-slate-300"}`}>{DIFFICULTY_SETTINGS[entry.difficulty]?.label || entry.difficulty}</span>
+                                                </td>
+                                                <td className="py-2 px-2 text-xs">{entry.date}</td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                            <div className="flex justify-between mt-4 gap-2">
+                                <button
+                                    className="text-slate-600 px-4 py-2 rounded hover:bg-slate-100 text-sm flex items-center gap-2"
+                                    onClick={onBack}
+                                >
+                                    <ChevronRight size={16} className="rotate-180" /> Back
+                                </button>
+                                {list.length > 0 && (
+                                    <button
+                                        className="bg-red-100 text-red-600 px-4 py-2 rounded hover:bg-red-200 text-sm"
+                                        onClick={() => {
+                                            if (window.confirm('Clear leaderboard?')) {
+                                                clearLeaderboard();
+                                                setLeaderboard([]);
+                                            }
+                                        }}
+                                    >
+                                        Clear Leaderboard
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Home
+            if (screen === 'home') {
+                return (
+                    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
+                        <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-slate-100">
+                            <div className="flex justify-center mb-6">
+                                <div className="bg-blue-100 p-4 rounded-full">
+                                    <BookOpen size={48} className="text-blue-600" />
+                                </div>
+                            </div>
+                            <h1 className="text-4xl font-extrabold text-slate-800 mb-4 tracking-tight">Bible Verse Master</h1>
+                            <p className="text-slate-600 mb-8 text-lg">
+                                Test your knowledge of the Scriptures. Fill in the missing words to complete the verses. Select a difficulty to begin!
+                            </p>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                                {Object.entries(DIFFICULTY_SETTINGS).map(([key, setting]) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => startGame(key)}
+                                        className={`${setting.color} ${setting.hover} text-white font-bold py-4 px-6 rounded-xl shadow-md transition-transform transform hover:scale-105 active:scale-95 flex flex-col items-center`}
+                                    >
+                                        <span className="text-xl mb-1">{setting.label}</span>
+                                        <span className="text-sm opacity-90">Hides {setting.hidePercent * 100}% of words</span>
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => setScreen('leaderboard')}
+                                className="flex items-center gap-2 text-yellow-700 border border-yellow-300 bg-yellow-50 hover:bg-yellow-100 font-bold px-6 py-3 rounded-xl transition-all"
+                            >
+                                <Trophy size={20} /> Leaderboard
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Leaderboard
+            if (screen === 'leaderboard') {
+                return <Leaderboard onBack={() => setScreen('home')} />;
+            }
+
+            // Game
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans pb-12">
+                    {/* Header */}
+                    <header className="bg-white shadow-sm sticky top-0 z-10">
+                        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+                            <button 
+                                onClick={() => setScreen('home')}
+                                className="text-slate-500 hover:text-slate-800 font-medium flex items-center gap-2 transition-colors"
+                            >
+                                <ChevronRight className="rotate-180" size={20}/> Back
+                            </button>
+                            
+                            <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-full">
+                                    <span className={`w-3 h-3 rounded-full ${DIFFICULTY_SETTINGS[difficulty].color}`}></span>
+                                    <span className="font-semibold text-slate-700 capitalize">{DIFFICULTY_SETTINGS[difficulty].label}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-yellow-600 bg-yellow-50 px-4 py-2 rounded-full border border-yellow-200">
+                                    <Trophy size={20} />
+                                    <span className="font-bold">{score} pts</span>
+                                </div>
+                                <button
+                                    className="bg-yellow-50 border border-yellow-200 px-3 py-1 rounded-lg text-yellow-800 text-xs hover:bg-yellow-100"
+                                    onClick={() => setScreen('leaderboard')}
+                                >
+                                    Leaderboard
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Main Game Area */}
+                    <main className="max-w-4xl mx-auto px-4 mt-8">
+                        {currentVerseInfo && (
+                            <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 border border-slate-100">
+                                
+                                <h2 className="text-2xl font-bold text-slate-800 mb-8 border-b pb-4 flex items-center gap-3">
+                                    <BookOpen className="text-blue-500" />
+                                    {currentVerseInfo.book} {currentVerseInfo.reference}
+                                </h2>
+
+                                {/* Verse Text Area */}
+                                <div className="text-xl sm:text-2xl leading-loose font-serif text-slate-700">
+                                    {tokens.map((token) => {
+                                        if (!token.isBlank || token.revealed || token.isCorrect) {
+                                            return (
+                                                <span key={token.id} className="mr-2 inline-block">
+                                                    {token.prePunc}
+                                                    <span className={token.isBlank ? (token.isCorrect ? "text-green-600 font-semibold" : "text-blue-600 font-semibold") : ""}>
+                                                        {token.cleanWord}
+                                                    </span>
+                                                    {token.postPunc}
+                                                </span>
+                                            );
+                                        } else {
+                                            return (
+                                                <span key={token.id} className="mr-2 inline-flex items-center">
+                                                    {token.prePunc}
+                                                    <input
+                                                        type="text"
+                                                        value={inputs[token.id] || ''}
+                                                        onChange={(e) => handleInputChange(token.id, e.target.value)}
+                                                        disabled={gameState !== 'playing'}
+                                                        className="mx-1 border-b-2 border-slate-300 bg-slate-50 focus:border-blue-500 focus:bg-white outline-none text-center text-blue-800 font-semibold transition-colors"
+                                                        style={{ 
+                                                            width: `${Math.max(3, token.cleanWord.length)}ch`,
+                                                            paddingBottom: '2px'
+                                                        }}
+                                                        autoCapitalize="none"
+                                                        autoComplete="off"
+                                                        spellCheck="false"
+                                                    />
+                                                    {token.postPunc}
+                                                </span>
+                                            );
+                                        }
+                                    })}
+                                </div>
+
+                                {/* Game Controls & Messages */}
+                                <div className="mt-12 pt-6 border-t border-slate-100">
+                                    {gameState === 'playing' ? (
+                                        <div className="flex flex-wrap gap-4 justify-between items-center">
+                                            <div className="flex gap-3">
+                                                <button 
+                                                    onClick={revealOneWord}
+                                                    className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                                                >
+                                                    <Lightbulb size={18} /> Reveal Word
+                                                </button>
+                                                <button 
+                                                    onClick={revealAll}
+                                                    className="flex items-center gap-2 bg-slate-100 hover:bg-red-50 text-red-600 px-4 py-2 rounded-lg font-medium transition-colors"
+                                                >
+                                                    <Eye size={18} /> Reveal All
+                                                </button>
+                                            </div>
+                                            <p className="text-sm text-slate-500 italic">
+                                                Type the missing words. Punctuation is ignored.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col sm:flex-row justify-between items-center gap-6 bg-green-50 p-6 rounded-xl border border-green-100">
+                                            <div className="flex items-center gap-3 text-green-700">
+                                                <CheckCircle2 size={28} />
+                                                <span className="font-bold text-lg">{message}</span>
+                                            </div>
+                                            <button 
+                                                onClick={nextVerse}
+                                                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md hover:shadow-lg"
+                                            >
+                                                <RefreshCw size={20} /> Next Verse
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                                {/* Prompt for name if new high score */}
+                                {showNamePrompt && (
+                                    <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50">
+                                        <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full flex flex-col items-center gap-2 border border-slate-200">
+                                            <Trophy size={40} className="text-yellow-500 mb-2" />
+                                            <h3 className="text-xl font-bold mb-1 text-yellow-700">New High Score!</h3>
+                                            <p className="mb-2 text-slate-600 text-center">Enter your name for the leaderboard:</p>
+                                            <input
+                                                type="text"
+                                                maxLength={20}
+                                                className="border w-full px-3 py-2 rounded-md focus:outline-none focus:border-blue-500 mb-3 text-lg text-center"
+                                                value={inputName}
+                                                autoFocus
+                                                placeholder="Your Name"
+                                                onChange={e => setInputName(e.target.value)}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter') saveScore();
+                                                }}
+                                            />
+                                            <button
+                                                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-6 py-2 rounded transition-all"
+                                                onClick={saveScore}
+                                            >
+                                                Save Score
+                                            </button>
+                                            <button
+                                                className="mt-1 text-xs text-slate-500 hover:underline"
+                                                onClick={() => setShowNamePrompt(false)}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
