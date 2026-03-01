@@ -370,6 +370,15 @@
             localStorage.removeItem('bibleblanks_leaderboard');
         }*/
 
+        // -- NEW: Name storage helpers --
+        function getSavedPlayerName() {
+            return localStorage.getItem('bibleblanks_playername') || '';
+        }
+
+        function savePlayerName(name) {
+            localStorage.setItem('bibleblanks_playername', name);
+        }
+
         function App() {
             const [screen, setScreen] = useState('home'); // 'home', 'playing', 'leaderboard'
             const [difficulty, setDifficulty] = useState(null);
@@ -383,6 +392,11 @@
             const [message, setMessage] = useState('');
             // Leaderboard State
             const [leaderboard, setLeaderboard] = useState(() => getLeaderboard());
+
+            // For managing player name: 
+            // playerName - set on load (from localStorage), or via modal on first score
+            // showNamePrompt - only if no saved name and scored high enough
+            const [playerName, setPlayerName] = useState(() => getSavedPlayerName());
             const [showNamePrompt, setShowNamePrompt] = useState(false);
             const [inputName, setInputName] = useState('');
 
@@ -476,14 +490,20 @@
                 setScore(s => s + DIFFICULTY_SETTINGS[difficulty].points);
             };
 
-            // After a win, check if leaderboard should be shown / name input needed
+            // Manage name prompt: only appear if high enough for leaderboard AND playerName not set
             useEffect(() => {
                 if (gameState === 'won') {
-                    // If high enough for leaderboard, prompt for name
                     let newLeaderboard = getLeaderboard();
                     if (score > 0) {
                         if (newLeaderboard.length < 10 || score > Math.min(...newLeaderboard.map(e => e.score))) {
-                            setTimeout(() => setShowNamePrompt(true), 500); // Brief delay for smoothness
+                            if (!playerName) {
+                                setTimeout(() => setShowNamePrompt(true), 500);
+                            } else {
+                                // Player name present, auto-save
+                                setTimeout(() => {
+                                    saveScore(); // Auto-save
+                                }, 500);
+                            }
                         }
                     }
                 } else {
@@ -491,6 +511,18 @@
                 }
             // eslint-disable-next-line
             }, [gameState]);
+
+            // If playerName changes mid-run (edge case: after entering), and gameState is 'won' and a save would be triggered, we can auto-save immediately.
+            useEffect(() => {
+                if (playerName && gameState === 'won' && showNamePrompt === false) {
+                    // Prevent reentry loop
+                    let newLeaderboard = getLeaderboard();
+                    if (score > 0 && (newLeaderboard.length < 10 || score > Math.min(...newLeaderboard.map(e => e.score)))) {
+                        saveScore();
+                    }
+                }
+            // eslint-disable-next-line
+            }, [playerName]);
 
             const checkWinCondition = (currentTokens) => {
                 const allDone = currentTokens.every(t => !t.isBlank || t.revealed || t.isCorrect);
@@ -527,15 +559,23 @@
                 loadRandomVerse(difficulty);
             };
 
-            // Leaderboard
+            // Leaderboard - MODIFY to use saved player name if available, otherwise show name prompt just once and save
             const saveScore = () => {
-                const name = inputName.trim() ? inputName.trim().slice(0, 20) : "Anonymous";
+                let name = playerName || inputName.trim();
+                name = name ? name.slice(0, 20) : "Anonymous";
                 const now = new Date().toISOString().slice(0, 16).replace("T", " ");
                 addScoreToLeaderboard(name, score, difficulty, now);
+
+                if (!playerName && name !== "Anonymous") {
+                    savePlayerName(name);
+                    setPlayerName(name);
+                }
                 setInputName('');
                 setShowNamePrompt(false);
                 setLeaderboard(getLeaderboard());
             };
+
+            // Option to reset name (say, via leaderboard UI) - for advanced use, you could add a button.
 
             // --------------------------------------------------------------------------
             // RENDER COMPONENTS
@@ -773,7 +813,7 @@
                                         </div>
                                     )}
                                 </div>
-                                {/* Prompt for name if new high score */}
+                                {/* Prompt for name if new high score and no name yet */}
                                 {showNamePrompt && (
                                     <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50">
                                         <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full flex flex-col items-center gap-2 border border-slate-200">
@@ -786,15 +826,25 @@
                                                 placeholder="Your Name"
                                                 onChange={e => setInputName(e.target.value)}
                                                 onKeyDown={e => {
-                                                    if (e.key === 'Enter') saveScore();
+                                                    if (e.key === 'Enter') {
+                                                        if (inputName.trim()) {
+                                                            saveScore();
+                                                        }
+                                                    }
                                                 }}
                                             />
                                             <button
                                                 className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-6 py-2 rounded transition-all"
-                                                onClick={saveScore}
+                                                onClick={() => {
+                                                    if (inputName.trim()) {
+                                                        saveScore();
+                                                    }
+                                                }}
+                                                disabled={!inputName.trim()}
                                             >
                                                 Save
                                             </button>
+                                            <p className="text-xs text-slate-400 mt-1">You only need to enter your name once.</p>
                                         </div>
                                     </div>
                                 )}
