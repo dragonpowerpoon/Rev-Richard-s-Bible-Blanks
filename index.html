@@ -92,15 +92,6 @@
             ["Isaiah", "12:2", "Surely God is my salvation; I will trust and not be afraid.", "easy"],
             ["Psalm", "56:3", "When I am afraid, I put my trust in you.", "easy"],
             ["Psalm", "119:103", "How sweet are your words to my taste, sweeter than honey to my mouth!", "easy"],
-            ["Proverbs", "17:22", "A cheerful heart is good medicine, but a crushed spirit dries up the bones.", "easy"],
-            ["Psalm", "118:6", "The LORD is with me; I will not be afraid. What can mere mortals do to me?", "easy"],
-            ["1 Chronicles", "16:8", "Give praise to the LORD, proclaim his name; make known among the nations what he has done.", "easy"],
-            ["Psalm", "119:105", "Your word is a lamp for my feet, a light on my path.", "easy"],
-            ["Proverbs", "16:3", "Commit to the LORD whatever you do, and he will establish your plans.", "easy"],
-            ["Psalm", "107:1", "Give thanks to the LORD, for he is good; his love endures forever.", "easy"],
-            ["John", "14:27", "Peace I leave with you; my peace I give you.", "easy"],
-            ["Psalm", "23:6", "Surely your goodness and love will follow me all the days of my life.", "easy"],
-            ["Matthew", "21:22", "If you believe, you will receive whatever you ask for in prayer.", "easy"],
 
             // MEDIUM
             ["Jeremiah", "29:11", "For I know the plans I have for you, declares the LORD, plans to prosper you and not to harm you, plans to give you hope and a future.", "medium"],
@@ -366,9 +357,9 @@
             localStorage.setItem('bibleblanks_leaderboard', JSON.stringify(top10));
         }
 
-        function clearLeaderboard() {
+        /*function clearLeaderboard() {
             localStorage.removeItem('bibleblanks_leaderboard');
-        }
+        }*/
 
         // -- NEW: Name storage helpers --
         function getSavedPlayerName() {
@@ -635,7 +626,7 @@
                                     <ChevronRight size={16} className="rotate-180" /> Back
                                 </button>
                                 {list.length > 0 && (
-                                    <button
+                                    <!--<button
                                         className="bg-red-100 text-red-600 px-4 py-2 rounded hover:bg-red-200 text-sm"
                                         onClick={() => {
                                             if (window.confirm('Clear leaderboard?')) {
@@ -645,7 +636,7 @@
                                         }}
                                     >
                                         Clear Leaderboard
-                                    </button>
+                                    </button>-->
                                 )}
                             </div>
                         </div>
@@ -860,4 +851,5 @@
     </script>
 </body>
 </html>
+
 
