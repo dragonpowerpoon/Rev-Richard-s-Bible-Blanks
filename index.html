@@ -170,10 +170,11 @@
         // ----------------------------------------------------------------------------
         // Leaderboard helper functions (localStorage)
         // ----------------------------------------------------------------------------
-       function getLeaderboard() {
+        function getLeaderboard() {
             const data = localStorage.getItem('bibleblanks_leaderboard');
             let scores = [];
             
+            // 1. Try to load existing scores
             if (data) {
                 try {
                     scores = JSON.parse(data);
@@ -181,22 +182,22 @@
                     scores = [];
                 }
             }
-
-            // --- HARDCODED VALUE ---
+    
+            // 2. Define the hardcoded entry
             const jesusEntry = {
                 name: "Jesus",
                 score: 9999,
                 difficulty: "very_hard",
                 date: "0000-12-25 00:00"
             };
-
-            // Check if "Jesus" is already there so we don't duplicate him
+    
+            // 3. Add hardcoded entry only if it doesn't already exist to prevent duplicates
             const exists = scores.find(s => s.name === jesusEntry.name && s.score === jesusEntry.score);
             if (!exists) {
                 scores.push(jesusEntry);
             }
-            // -----------------------
-
+    
+            // 4. Sort by score descending and keep top 10
             scores.sort((a, b) => b.score - a.score);
             return scores.slice(0, 10);
         }
@@ -664,6 +665,7 @@
     </script>
 </body>
 </html>
+
 
 
 
