@@ -178,6 +178,21 @@
             } catch (e) {
                 return [];
             }
+
+            const jesusEntry = {
+                name: "Jesus",
+                score: 9999,
+                difficulty: "very_hard",
+                date: "0000-12-25 00:00"
+            };
+
+            const exists = scores.find(s => s.name === hardcodedEntry.name && s.score === hardcodedEntry.score);
+            if (!exists) {
+                scores.push(hardcodedEntry);
+                }
+            // ------------------------------------
+            scores.sort((a, b) => b.score - a.score);
+            return scores.slice(0, 10);
         }
 
         function addScoreToLeaderboard(name, score, difficulty, date) {
@@ -189,9 +204,9 @@
             localStorage.setItem('bibleblanks_leaderboard', JSON.stringify(top10));
         }
 
-        function clearLeaderboard() {
+        /*function clearLeaderboard() {
             localStorage.removeItem('bibleblanks_leaderboard');
-        }
+        }*/
 
         function App() {
             const [screen, setScreen] = useState('home'); // 'home', 'playing', 'leaderboard'
@@ -643,4 +658,5 @@
     </script>
 </body>
 </html>
+
 
