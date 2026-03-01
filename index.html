@@ -170,15 +170,19 @@
         // ----------------------------------------------------------------------------
         // Leaderboard helper functions (localStorage)
         // ----------------------------------------------------------------------------
-        function getLeaderboard() {
+       function getLeaderboard() {
             const data = localStorage.getItem('bibleblanks_leaderboard');
-            if (!data) return [];
-            try {
-                return JSON.parse(data);
-            } catch (e) {
-                return [];
+            let scores = [];
+            
+            if (data) {
+                try {
+                    scores = JSON.parse(data);
+                } catch (e) {
+                    scores = [];
+                }
             }
 
+            // --- HARDCODED VALUE ---
             const jesusEntry = {
                 name: "Jesus",
                 score: 9999,
@@ -186,11 +190,13 @@
                 date: "0000-12-25 00:00"
             };
 
+            // Check if "Jesus" is already there so we don't duplicate him
             const exists = scores.find(s => s.name === jesusEntry.name && s.score === jesusEntry.score);
             if (!exists) {
-                scores.push(hardcodedEntry);
-                }
-            // ------------------------------------
+                scores.push(jesusEntry);
+            }
+            // -----------------------
+
             scores.sort((a, b) => b.score - a.score);
             return scores.slice(0, 10);
         }
@@ -658,6 +664,7 @@
     </script>
 </body>
 </html>
+
 
 
 
